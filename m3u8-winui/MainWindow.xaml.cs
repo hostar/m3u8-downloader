@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
 using System.Linq;
+using System.Net.Http;
 using System.Runtime.InteropServices.WindowsRuntime;
 using System.Windows.Input;
 using CurlToCSharp.Models.Parsing;
@@ -18,8 +19,10 @@ using Microsoft.UI.Xaml.Navigation;
 
 using Windows.Foundation;
 using Windows.Foundation.Collections;
-//using CurlToCSharp.Services;
 using Windows.UI.Popups;
+using m3u8_winui.deps.M3u8Parser;
+using System.Diagnostics;
+using System.Text;
 
 // To learn more about WinUI, the WinUI project structure,
 // and more about our project templates, see: http://aka.ms/winui-project-info.
@@ -30,6 +33,8 @@ namespace m3u8_winui
     /// </summary>
     public sealed partial class MainWindow : Window, INotifyPropertyChanged
     {
+        public event PropertyChangedEventHandler PropertyChanged;
+
         public MainViewModel HeaderModel { get; set; } = new MainViewModel();
 
         private string url;
@@ -39,8 +44,17 @@ namespace m3u8_winui
                 PropertyChanged(this, new PropertyChangedEventArgs(nameof(URL)));
             }
         }
-        public event PropertyChangedEventHandler PropertyChanged;
 
+        private string filePath;
+        public string FilePath
+        {
+            get { return filePath; }
+            set
+            {
+                filePath = value;
+                PropertyChanged(this, new PropertyChangedEventArgs(nameof(FilePath)));
+            }
+        }
 
         public MainWindow()
         {
@@ -67,6 +81,53 @@ namespace m3u8_winui
         {
             var btn = sender as Button;
             HeaderModel.Items.Remove((HeaderView)btn.Tag);
+        }
+
+        private async void Download_Click(object sender, RoutedEventArgs e)
+        {
+            HttpResponseMessage responseMsg_m3u8;
+            using (var httpClient = new HttpClient())
+            {
+                using (var request = new HttpRequestMessage(new HttpMethod("GET"), URL))
+                {
+                    foreach (var header in HeaderModel.Items)
+                    {
+                        request.Headers.TryAddWithoutValidation(header.Name, header.Value);
+                    }
+
+                    responseMsg_m3u8 = await httpClient.SendAsync(request);
+                }
+            }
+
+            StreamWriter streamWriter = new StreamWriter(FilePath, true, Encoding.UTF8);
+
+            string response_m3u8 = await responseMsg_m3u8.Content.ReadAsStringAsync();
+            var m3u8 = M3u8Parser.Parse(response_m3u8);
+
+            var urlReplaced = URL.Substring(0, URL.LastIndexOf('/'));
+            foreach (var media in m3u8.Medias)
+            {
+                // download individual video chunks
+                using (var httpClient = new HttpClient())
+                {
+                    var chunkUrl = urlReplaced + "/" + media.Path;
+                    using (var request = new HttpRequestMessage(new HttpMethod("GET"), chunkUrl))
+                    {
+                        foreach (var header in HeaderModel.Items)
+                        {
+                            request.Headers.TryAddWithoutValidation(header.Name, header.Value);
+                        }
+
+                        var responseMsgVideoChunk = await httpClient.SendAsync(request);
+                        var tmpStream = await responseMsgVideoChunk.Content.ReadAsStreamAsync();
+                        StreamReader streamReader = new StreamReader(tmpStream);
+                        streamWriter.Write(streamReader.ReadToEnd());
+                        streamReader.Close();
+                    }
+                }
+            }
+
+            streamWriter.Close();
         }
     }
 
