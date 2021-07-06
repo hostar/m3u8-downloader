@@ -39,10 +39,12 @@
                 </Grid>
             </muxc:Expander.Content>
         </muxc:Expander>
+        <TextBlock>URL:</TextBlock>
+        <TextBox Text="{x:Bind URL, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+        <TextBlock>Headers:</TextBlock>
         <ListView
             x:Name="MyListView"
             Grid.Row="1"
-            DoubleTapped="{x:Bind HeaderModel.ListViewDoubleTapped}"
             ItemsSource="{x:Bind HeaderModel.Items}">
             <ListView.HeaderTemplate>
                 <DataTemplate>

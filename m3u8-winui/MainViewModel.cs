@@ -138,23 +138,6 @@ namespace m3u8_winui
             }
         }
 
-        private void AddOrEditItem()
-        {
-            /*
-            var selectedItemId = -1;
-
-            if (SelectedHeaderView != null)
-            {
-                selectedItemId = SelectedHeaderView.Name;
-            }
-            */
-        }
-
-        public void ListViewDoubleTapped(object sender, DoubleTappedRoutedEventArgs e)
-        {
-            AddOrEditItem();
-        }
-
         private void DeleteItem()
         {
             allItems.Remove(SelectedHeaderView);

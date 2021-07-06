@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices.WindowsRuntime;
@@ -27,9 +28,20 @@ namespace m3u8_winui
     /// <summary>
     /// An empty window that can be used on its own or navigated to within a Frame.
     /// </summary>
-    public sealed partial class MainWindow : Window
+    public sealed partial class MainWindow : Window, INotifyPropertyChanged
     {
         public MainViewModel HeaderModel { get; set; } = new MainViewModel();
+
+        private string url;
+        public string URL { get { return url; } set
+            {
+                url = value;
+                PropertyChanged(this, new PropertyChangedEventArgs(nameof(URL)));
+            }
+        }
+        public event PropertyChangedEventHandler PropertyChanged;
+
+
         public MainWindow()
         {
             InitializeComponent();
@@ -41,7 +53,7 @@ namespace m3u8_winui
             //var converterService = new ConverterService();
             var parserResult = commandLineParser.Parse(new Span<char>($"curl {tbCurl.Text}".ToCharArray()));
 
-            //ViewModel.Items
+            URL = parserResult.Data.Url.ToString();
             foreach (var header in parserResult.Data.Headers)
             {
                 HeaderModel.Items.Add(new Models.HeaderView() { Name = header.Key, Value = header.Value });
