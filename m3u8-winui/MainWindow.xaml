@@ -7,7 +7,6 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:model="using:m3u8_winui.Models"
     xmlns:muxc="using:Microsoft.UI.Xaml.Controls"
-    x:Name="window"
     mc:Ignorable="d">
 
 

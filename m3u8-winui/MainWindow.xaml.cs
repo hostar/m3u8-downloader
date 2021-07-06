@@ -45,6 +45,7 @@ namespace m3u8_winui
         public MainWindow()
         {
             InitializeComponent();
+            Title = "M3U8 Downloader - WinUI";
         }
 
         private void Import_Click(object sender, RoutedEventArgs e)

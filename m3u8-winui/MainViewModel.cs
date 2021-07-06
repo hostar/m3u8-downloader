@@ -146,26 +146,4 @@ namespace m3u8_winui
 
         private bool CanDeleteItem() => SelectedHeaderView != null;
     }
-
-    public class CommadEventHandler<T> : ICommand
-    {
-        public event EventHandler CanExecuteChanged;
-
-        public Action<T> action;
-
-        public bool CanExecute(object parameter)
-        {
-            return true;
-        }
-
-        public void Execute(object parameter)
-        {
-            this.action((T)parameter);
-        }
-        public CommadEventHandler(Action<T> action)
-        {
-            this.action = action;
-
-        }
-    }
 }
