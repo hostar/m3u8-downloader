@@ -6,6 +6,7 @@ using System.Runtime.InteropServices.WindowsRuntime;
 using System.Windows.Input;
 using CurlToCSharp.Models.Parsing;
 using CurlToCSharp.Services;
+using m3u8_winui.Models;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
@@ -41,14 +42,18 @@ namespace m3u8_winui
             var parserResult = commandLineParser.Parse(new Span<char>($"curl {tbCurl.Text}".ToCharArray()));
 
             //ViewModel.Items
-            //parserResult.Data.
+            foreach (var header in parserResult.Data.Headers)
+            {
+                HeaderModel.Items.Add(new Models.HeaderView() { Name = header.Key, Value = header.Value });
+            }
 
             //var csharp = converterService.ToCsharp(parserResult.Data);
         }
 
         private void Delete_Click(object sender, RoutedEventArgs e)
         {
-
+            var btn = sender as Button;
+            HeaderModel.Items.Remove((HeaderView)btn.Tag);
         }
     }
 
