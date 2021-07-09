@@ -9,8 +9,8 @@
 
   <Identity
     Name="900FBBF2-1101-47F6-B32A-29F0505BCB5F"
-    Publisher="CN=Jan Starka"
-    Version="1.0.0.0" />
+    Publisher="CN=hostar"
+    Version="1.0.7.0" />
 
   <Properties>
     <DisplayName>m3u8-winui (Package)</DisplayName>

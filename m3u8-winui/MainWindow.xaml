@@ -39,13 +39,14 @@
                 </muxc:Expander.Content>
             </muxc:Expander>
             <TextBlock Margin="5">Download file path:</TextBlock>
-            <TextBox Text="{x:Bind FilePath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+            <TextBox IsEnabled="{x:Bind downloadButtonEnabled, Mode=TwoWay}" Text="{x:Bind FilePath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
             <TextBlock Margin="5">URL:</TextBlock>
-            <TextBox Text="{x:Bind URL, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+            <TextBox IsEnabled="{x:Bind downloadButtonEnabled, Mode=TwoWay}" Text="{x:Bind URL, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
             <TextBlock Margin="5">Headers:</TextBlock>
             <ListView
                 x:Name="MyListView"
                 Grid.Row="1"
+                IsEnabled="{x:Bind downloadButtonEnabled, Mode=TwoWay}"
                 ItemsSource="{x:Bind HeaderModel.Items}">
                 <ListView.HeaderTemplate>
                     <DataTemplate>
@@ -80,13 +81,13 @@
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition
-                                    Width="Auto"
+                                    Width="320"
                                     MinWidth="320"
-                                    MaxWidth="600" />
+                                    MaxWidth="320" />
                                 <ColumnDefinition
-                                    Width="Auto"
-                                    MinWidth="320"
-                                    MaxWidth="600" />
+                                    Width="400"
+                                    MinWidth="400"
+                                    MaxWidth="400" />
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
                             <TextBox
@@ -118,9 +119,15 @@
                     Command="{x:Bind HeaderModel.AddCommand}"
                     Content="Add header" />
             </StackPanel>
+            <TextBlock Margin="5">Download progress:</TextBlock>
+            <muxc:ProgressBar
+                x:Name="downloadProgressBar"
+                Width="600"
+                Value="{x:Bind downloadProgress, Mode=TwoWay}" />
             <Button
                 Background="#30a314"
                 Click="Download_Click"
+                IsEnabled="{x:Bind downloadButtonEnabled, Mode=TwoWay}"
                 Tag="{Binding}">
                 Download
             </Button>

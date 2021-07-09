@@ -23,6 +23,7 @@ using Windows.UI.Popups;
 using m3u8_winui.deps.M3u8Parser;
 using System.Diagnostics;
 using System.Text;
+using Windows.UI.Notifications;
 
 // To learn more about WinUI, the WinUI project structure,
 // and more about our project templates, see: http://aka.ms/winui-project-info.
@@ -56,6 +57,11 @@ namespace m3u8_winui
             }
         }
 
+        public int downloadProgress { get; set; } = 0;
+        public double downloadProgressDouble { get; set; } = 0;
+
+        public bool downloadButtonEnabled { get; set; } = true;
+
         public MainWindow()
         {
             InitializeComponent();
@@ -85,6 +91,22 @@ namespace m3u8_winui
 
         private async void Download_Click(object sender, RoutedEventArgs e)
         {
+            if (string.IsNullOrWhiteSpace(URL))
+            {
+                /*
+                var errorDialog = new ContentDialog()
+                {
+                    Title = "Missing entry",
+                    Content = "Must enter URL.",
+                    CloseButtonText = "Ok"
+                };
+
+                await errorDialog.ShowAsync(ContentDialogPlacement.Popup);
+                */
+                return;
+            }
+            downloadButtonEnabled = false;
+            PropertyChanged(this, new PropertyChangedEventArgs(nameof(downloadButtonEnabled)));
             HttpResponseMessage responseMsg_m3u8;
             using (var httpClient = new HttpClient())
             {
@@ -99,12 +121,14 @@ namespace m3u8_winui
                 }
             }
 
-            StreamWriter streamWriter = new StreamWriter(FilePath, true, Encoding.UTF8);
+            FileStream fileStream = new FileStream(FilePath, FileMode.Create);
 
             string response_m3u8 = await responseMsg_m3u8.Content.ReadAsStringAsync();
             var m3u8 = M3u8Parser.Parse(response_m3u8);
 
             var urlReplaced = URL.Substring(0, URL.LastIndexOf('/'));
+
+            var progressChunk = 100.0 / m3u8.Medias.Count;
             foreach (var media in m3u8.Medias)
             {
                 // download individual video chunks
@@ -119,15 +143,42 @@ namespace m3u8_winui
                         }
 
                         var responseMsgVideoChunk = await httpClient.SendAsync(request);
-                        var tmpStream = await responseMsgVideoChunk.Content.ReadAsStreamAsync();
-                        StreamReader streamReader = new StreamReader(tmpStream);
-                        streamWriter.Write(streamReader.ReadToEnd());
-                        streamReader.Close();
+                        downloadProgressDouble += progressChunk;
+                        downloadProgress = (int)downloadProgressDouble;
+                        PropertyChanged(this, new PropertyChangedEventArgs(nameof(downloadProgress)));
+
+                        using (var memstream = new MemoryStream())
+                        {
+                            await responseMsgVideoChunk.Content.CopyToAsync(memstream);
+                            var bytes = default(byte[]);
+                            bytes = memstream.ToArray();
+                            fileStream.Write(bytes);
+                        }
                     }
                 }
             }
 
-            streamWriter.Close();
+            fileStream.Close();
+            ShowNotification();
+
+            downloadProgress = 0;
+            PropertyChanged(this, new PropertyChangedEventArgs(nameof(downloadProgress)));
+            downloadButtonEnabled = true;
+            PropertyChanged(this, new PropertyChangedEventArgs(nameof(downloadButtonEnabled)));
+        }
+
+        private void ShowNotification()
+        {
+            ToastNotifier ToastNotifier = ToastNotificationManager.CreateToastNotifier();
+            Windows.Data.Xml.Dom.XmlDocument toastXml = ToastNotificationManager.GetTemplateContent(ToastTemplateType.ToastText02);
+            Windows.Data.Xml.Dom.XmlNodeList toastNodeList = toastXml.GetElementsByTagName("text");
+            toastNodeList.Item(0).AppendChild(toastXml.CreateTextNode("Download done"));
+            toastNodeList.Item(1).AppendChild(toastXml.CreateTextNode($"File {FilePath} was downloaded"));
+            Windows.Data.Xml.Dom.IXmlNode toastNode = toastXml.SelectSingleNode("/toast");
+
+            ToastNotification toast = new ToastNotification(toastXml);
+            toast.ExpirationTime = DateTime.Now.AddSeconds(4);
+            ToastNotifier.Show(toast);
         }
     }
 
