@@ -104,7 +104,7 @@
                   Text="{Binding Path=Value}" />
               <Button
                   Grid.Column="2"
-                  Click="Delete_Click"
+                  Click="DeleteHeader_Click"
                   Content="Delete"
                   Tag="{Binding}" />
             </Grid>
@@ -117,14 +117,14 @@
           Orientation="Horizontal">
         <Button
             Margin="8,8,0,8"
-            Command="{Binding HeaderModel.AddCommand}"
+            Click="AddHeader_Click"
             Content="Add header" />
       </StackPanel>
       <TextBlock Margin="5">Download progress:</TextBlock>
       <ProgressBar
           x:Name="downloadProgressBar"
           Width="600"
-          Value="{Binding downloadProgress, Mode=TwoWay}" />
+          Value="{Binding DownloadProgress, Mode=TwoWay}" />
       <Button
           Background="#30a314"
           Click="Download_Click"

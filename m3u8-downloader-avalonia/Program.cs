@@ -16,6 +16,7 @@ namespace m3u8_downloader_avalonia
         // Avalonia configuration, don't remove; also used by visual designer.
         public static AppBuilder BuildAvaloniaApp()
             => AppBuilder.Configure<App>()
+                .UseReactiveUI()
                 .UsePlatformDetect()
                 .LogToTrace()
                 .UseReactiveUI();

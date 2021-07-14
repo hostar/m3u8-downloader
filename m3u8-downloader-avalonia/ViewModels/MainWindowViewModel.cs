@@ -31,6 +31,13 @@ namespace m3u8_downloader_avalonia.ViewModels
             set => this.RaiseAndSetIfChanged(ref downloadButtonEnabled, value);
         }
 
-        
+        private int downloadProgress = 0;
+
+        public int DownloadProgress
+        {
+            get => downloadProgress;
+            set => this.RaiseAndSetIfChanged(ref downloadProgress, value);
+        }
+        public double downloadProgressDouble { get; set; } = 0;
     }
 }

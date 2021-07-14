@@ -21,6 +21,7 @@ namespace m3u8_downloader_avalonia
                 {
                     DataContext = new MainWindowViewModel(),
                 };
+                (desktop.MainWindow as MainWindow).DoTheThing();
             }
 
             base.OnFrameworkInitializationCompleted();
