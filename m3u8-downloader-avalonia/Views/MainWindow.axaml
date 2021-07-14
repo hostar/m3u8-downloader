@@ -14,7 +14,7 @@
     </Design.DataContext>
 
   <ScrollViewer Margin="5">
-    <StackPanel Width="1000" Orientation="Vertical">
+    <StackPanel Orientation="Vertical">
       <Expander x:Name="Expander2" Header="Import curl">
         <Expander.Content>
           <Grid>
@@ -47,9 +47,14 @@
 
       <Grid>
         <Grid.ColumnDefinitions>
-          <ColumnDefinition Width="1*" />
-          <ColumnDefinition Width="1*" />
-          <ColumnDefinition Width="1*" />
+          <ColumnDefinition
+                    Width="320"
+                    MinWidth="320"
+                    MaxWidth="320" />
+          <ColumnDefinition
+              Width="400"
+              MinWidth="400"
+              MaxWidth="400" />
         </Grid.ColumnDefinitions>
 
         <Border BorderBrush="BlueViolet" BorderThickness="0,0,0,1">
@@ -70,7 +75,6 @@
       </Grid>
       <ItemsRepeater
           x:Name="MyListView"
-          Grid.Row="1"
           IsEnabled="{Binding DownloadButtonEnabled, Mode=TwoWay}"
           Items="{Binding HeaderModel.Items}">
 
@@ -109,7 +113,6 @@
       </ItemsRepeater>
 
       <StackPanel
-          Grid.Row="2"
           HorizontalAlignment="Right"
           Orientation="Horizontal">
         <Button
