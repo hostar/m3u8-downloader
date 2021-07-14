@@ -1,6 +1,7 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:m3u8_downloader_avalonia.ViewModels"
+        xmlns:model="using:m3u8_downloader_avalonia.Models"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
@@ -12,6 +13,123 @@
         <vm:MainWindowViewModel/>
     </Design.DataContext>
 
-    <TextBlock Text="{Binding Greeting}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+  <ScrollViewer Margin="5">
+    <StackPanel Width="1000" Orientation="Vertical">
+      <Expander x:Name="Expander2" Header="Import curl">
+        <Expander.Content>
+          <Grid>
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="500" />
+              <ColumnDefinition Width="Auto" />
+              <ColumnDefinition />
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+              <RowDefinition Height="200" />
+              <RowDefinition Height="Auto" />
+              <RowDefinition />
+            </Grid.RowDefinitions>
+
+            <TextBox
+                Name="tbCurl"
+                Grid.Row="0"
+                MinWidth="400"
+                AcceptsReturn="True"
+                TextWrapping="Wrap" />
+            <Button Grid.Row="1" Click="Import_Click">Import</Button>
+          </Grid>
+        </Expander.Content>
+      </Expander>
+      <TextBlock Margin="5">Download file path:</TextBlock>
+      <TextBox IsEnabled="{Binding DownloadButtonEnabled, Mode=TwoWay}" Text="{Binding FilePath, Mode=TwoWay}" />
+      <TextBlock Margin="5">URL:</TextBlock>
+      <TextBox IsEnabled="{Binding DownloadButtonEnabled, Mode=TwoWay}" Text="{Binding URL, Mode=TwoWay}" />
+      <TextBlock Margin="5">Headers:</TextBlock>
+
+      <Grid>
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="1*" />
+          <ColumnDefinition Width="1*" />
+          <ColumnDefinition Width="1*" />
+        </Grid.ColumnDefinitions>
+
+        <Border BorderBrush="BlueViolet" BorderThickness="0,0,0,1">
+          <TextBlock
+              Margin="5,0,0,0"
+              FontWeight="Bold"
+              Text="Name" />
+        </Border>
+        <Border
+            Grid.Column="1"
+            BorderBrush="BlueViolet"
+            BorderThickness="0,0,0,1">
+          <TextBlock
+              Margin="5,0,0,0"
+              FontWeight="Bold"
+              Text="Value" />
+        </Border>
+      </Grid>
+      <ItemsRepeater
+          x:Name="MyListView"
+          Grid.Row="1"
+          IsEnabled="{Binding DownloadButtonEnabled, Mode=TwoWay}"
+          Items="{Binding HeaderModel.Items}">
+
+        <ItemsRepeater.ItemTemplate>
+          <DataTemplate x:DataType="model:HeaderView">
+            <Grid>
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition
+                    Width="320"
+                    MinWidth="320"
+                    MaxWidth="320" />
+                <ColumnDefinition
+                    Width="400"
+                    MinWidth="400"
+                    MaxWidth="400" />
+                <ColumnDefinition Width="Auto" />
+              </Grid.ColumnDefinitions>
+              <TextBox
+                  Grid.Column="0"
+                  Margin="5"
+                  HorizontalAlignment="Stretch"
+                  Text="{Binding Path=Name}" />
+              <TextBox
+                  Grid.Column="1"
+                  MaxWidth="500"
+                  Margin="5"
+                  Text="{Binding Path=Value}" />
+              <Button
+                  Grid.Column="2"
+                  Click="Delete_Click"
+                  Content="Delete"
+                  Tag="{Binding}" />
+            </Grid>
+          </DataTemplate>
+        </ItemsRepeater.ItemTemplate>
+      </ItemsRepeater>
+
+      <StackPanel
+          Grid.Row="2"
+          HorizontalAlignment="Right"
+          Orientation="Horizontal">
+        <Button
+            Margin="8,8,0,8"
+            Command="{Binding HeaderModel.AddCommand}"
+            Content="Add header" />
+      </StackPanel>
+      <TextBlock Margin="5">Download progress:</TextBlock>
+      <ProgressBar
+          x:Name="downloadProgressBar"
+          Width="600"
+          Value="{Binding downloadProgress, Mode=TwoWay}" />
+      <Button
+          Background="#30a314"
+          Click="Download_Click"
+          IsEnabled="{Binding DownloadButtonEnabled, Mode=TwoWay}"
+          Tag="{Binding}">
+        Download
+      </Button>
+    </StackPanel>
+  </ScrollViewer>
 
 </Window>

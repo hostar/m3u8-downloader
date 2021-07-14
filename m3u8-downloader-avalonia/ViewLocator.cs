@@ -1,7 +1,11 @@
-using System;
-using Avalonia.Controls;
+﻿using Avalonia.Controls;
 using Avalonia.Controls.Templates;
 using m3u8_downloader_avalonia.ViewModels;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace m3u8_downloader_avalonia
 {
@@ -26,7 +30,7 @@ namespace m3u8_downloader_avalonia
 
         public bool Match(object data)
         {
-            return data is ViewModelBase;
+            return data is MainWindowViewModel;
         }
     }
 }
