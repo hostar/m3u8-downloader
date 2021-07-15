@@ -7,7 +7,7 @@ using CurlToCSharp.Models.Parsing;
 using CurlToCSharp.Services;
 using m3u8_downloader_avalonia.Models;
 using m3u8_downloader_avalonia.ViewModels;
-using SimpleM3U8Parser;
+using m3u8_downloader_avalonia.deps.M3U8parser;
 using System;
 using System.ComponentModel;
 using System.IO;
@@ -71,16 +71,7 @@ namespace m3u8_downloader_avalonia.Views
         {
             if (string.IsNullOrWhiteSpace(ctx.URL))
             {
-                /*
-                var errorDialog = new ContentDialog()
-                {
-                    Title = "Missing entry",
-                    Content = "Must enter URL.",
-                    CloseButtonText = "Ok"
-                };
-
-                await errorDialog.ShowAsync(ContentDialogPlacement.Popup);
-                */
+                ShowNotification("Must enter URL");
                 return;
             }
             ctx.DownloadButtonEnabled = false;
@@ -95,7 +86,16 @@ namespace m3u8_downloader_avalonia.Views
                         request.Headers.TryAddWithoutValidation(header.Name, header.Value);
                     }
 
-                    responseMsg_m3u8 = await httpClient.SendAsync(request);
+                    try
+                    {
+                        responseMsg_m3u8 = await httpClient.SendAsync(request);
+                    }
+                    catch (Exception)
+                    {
+                        ShowNotification("URL unreachable.");
+                        ctx.DownloadButtonEnabled = true;
+                        return;
+                    }
                 }
             }
 
@@ -108,6 +108,13 @@ namespace m3u8_downloader_avalonia.Views
 
             string response_m3u8 = await responseMsg_m3u8.Content.ReadAsStringAsync();
             var m3u8 = M3u8Parser.Parse(response_m3u8);
+
+            if (m3u8.Medias.Count == 0)
+            {
+                ShowNotification("URL does not contain any media.");
+                ctx.DownloadButtonEnabled = true;
+                return;
+            }
 
             var urlReplaced = ctx.URL.Substring(0, ctx.URL.LastIndexOf('/'));
 
@@ -141,12 +148,19 @@ namespace m3u8_downloader_avalonia.Views
             }
 
             fileStream.Close();
-            // ShowNotification();
+            ShowNotification("Download done");
 
             ctx.DownloadProgress = 0;
             
             ctx.DownloadButtonEnabled = true;
             
+        }
+
+        private void ShowNotification(string text)
+        {
+            var messageBoxStandardWindow = MessageBox.Avalonia.MessageBoxManager
+                .GetMessageBoxStandardWindow("Notification", text);
+            messageBoxStandardWindow.Show();
         }
 
         /*
