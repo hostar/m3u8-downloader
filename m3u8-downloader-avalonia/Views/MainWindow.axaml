@@ -15,7 +15,7 @@
 
   <ScrollViewer Margin="5">
     <StackPanel Orientation="Vertical">
-      <Expander x:Name="Expander2" Header="Import curl">
+      <Expander Header="Import curl">
         <Expander.Content>
           <Grid>
             <Grid.ColumnDefinitions>
@@ -45,19 +45,12 @@
       <TextBox IsEnabled="{Binding DownloadButtonEnabled, Mode=TwoWay}" Text="{Binding URL, Mode=TwoWay}" />
       <TextBlock Margin="5">Headers:</TextBlock>
 
-      <Grid>
-        <Grid.ColumnDefinitions>
-          <ColumnDefinition
-                    Width="320"
-                    MinWidth="320"
-                    MaxWidth="320" />
-          <ColumnDefinition
-              Width="400"
-              MinWidth="400"
-              MaxWidth="400" />
-        </Grid.ColumnDefinitions>
+      <!-- Header list header -->
+      <Grid ColumnDefinitions="320,400">
 
-        <Border BorderBrush="BlueViolet" BorderThickness="0,0,0,1">
+        <Border
+          BorderBrush="Gray"
+          BorderThickness="0,0,0,1">
           <TextBlock
               Margin="5,0,0,0"
               FontWeight="Bold"
@@ -65,7 +58,7 @@
         </Border>
         <Border
             Grid.Column="1"
-            BorderBrush="BlueViolet"
+            BorderBrush="Gray"
             BorderThickness="0,0,0,1">
           <TextBlock
               Margin="5,0,0,0"
@@ -73,6 +66,7 @@
               Text="Value" />
         </Border>
       </Grid>
+      <!-- Header list content -->
       <ItemsRepeater
           x:Name="MyListView"
           IsEnabled="{Binding DownloadButtonEnabled, Mode=TwoWay}"

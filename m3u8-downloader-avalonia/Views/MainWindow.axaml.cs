@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
+using Avalonia.Dialogs;
 using CurlToCSharp.Models.Parsing;
 using CurlToCSharp.Services;
 using m3u8_downloader_avalonia.Models;
@@ -98,6 +99,11 @@ namespace m3u8_downloader_avalonia.Views
                 }
             }
 
+            if (string.IsNullOrEmpty(ctx.FilePath))
+            {
+                SaveFileDialog saveFileDialog = new SaveFileDialog();
+                ctx.FilePath = await saveFileDialog.ShowAsync(this);
+            }
             FileStream fileStream = new FileStream(ctx.FilePath, FileMode.Create);
 
             string response_m3u8 = await responseMsg_m3u8.Content.ReadAsStringAsync();
