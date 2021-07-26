@@ -12,6 +12,7 @@ using System;
 using System.ComponentModel;
 using System.IO;
 using System.Net.Http;
+using MessageBox.Avalonia.DTO;
 
 namespace m3u8_downloader_avalonia.Views
 {
@@ -159,7 +160,14 @@ namespace m3u8_downloader_avalonia.Views
         private void ShowNotification(string text)
         {
             var messageBoxStandardWindow = MessageBox.Avalonia.MessageBoxManager
-                .GetMessageBoxStandardWindow("Notification", text);
+                .GetMessageBoxStandardWindow(new MessageBoxStandardParams {
+                    ContentTitle = "Notification",
+                    ContentMessage = text,
+                    ShowInCenter = true,
+                    MinWidth = 500,
+                    SizeToContent = SizeToContent.WidthAndHeight,
+                    CanResize = false
+                });
             messageBoxStandardWindow.Show();
         }
 
