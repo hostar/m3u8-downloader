@@ -111,10 +111,9 @@ namespace m3u8_downloader_avalonia.Views
 
             if (string.IsNullOrEmpty(ctx.FilePath))
             {
-                SaveFileDialog saveFileDialog = new SaveFileDialog();
-                ctx.FilePath = await saveFileDialog.ShowAsync(this);
+                await OpenSaveDialog();
             }
-            
+
             if (await DownloadChunks(responseMsg_m3u8))
             {
                 ShowNotification("Download done");
@@ -122,6 +121,17 @@ namespace m3u8_downloader_avalonia.Views
 
                 ctx.DownloadButtonEnabled = true;
             }
+        }
+
+        private async Task OpenSaveDialog()
+        {
+            SaveFileDialog saveFileDialog = new SaveFileDialog();
+            ctx.FilePath = await saveFileDialog.ShowAsync(this);
+        }
+
+        private async void OpenSaveDialog_Click(object sender, RoutedEventArgs e)
+        {
+            await OpenSaveDialog();
         }
 
         private async Task<bool> DownloadChunks(HttpResponseMessage responseMsg_m3u8, bool showModalIfMediaMissing = true)
