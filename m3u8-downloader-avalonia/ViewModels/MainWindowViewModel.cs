@@ -1,4 +1,5 @@
 ﻿using Avalonia.Interactivity;
+using m3u8_downloader_avalonia.deps.M3U8parser;
 using ReactiveUI;
 using System;
 using System.Collections.Generic;
@@ -31,6 +32,13 @@ namespace m3u8_downloader_avalonia.ViewModels
             set => this.RaiseAndSetIfChanged(ref downloadButtonEnabled, value);
         }
 
+        private bool qualityModalOpened = false;
+        public bool QualityModalOpened
+        {
+            get => qualityModalOpened;
+            set => this.RaiseAndSetIfChanged(ref qualityModalOpened, value);
+        }
+
         private int downloadProgress = 0;
 
         public int DownloadProgress
@@ -39,5 +47,12 @@ namespace m3u8_downloader_avalonia.ViewModels
             set => this.RaiseAndSetIfChanged(ref downloadProgress, value);
         }
         public double downloadProgressDouble { get; set; } = 0;
+
+        private List<M3u8Quality> qualityList = new List<M3u8Quality>();
+        public List<M3u8Quality> QualityList
+        {
+            get => qualityList;
+            set => this.RaiseAndSetIfChanged(ref qualityList, value);
+        }
     }
 }

@@ -13,6 +13,8 @@ using System.ComponentModel;
 using System.IO;
 using System.Net.Http;
 using MessageBox.Avalonia.DTO;
+using System.Threading.Tasks;
+using DialogHost;
 
 namespace m3u8_downloader_avalonia.Views
 {
@@ -68,6 +70,24 @@ namespace m3u8_downloader_avalonia.Views
             ctx.HeaderModel.Items.Add(new HeaderView());
         }
 
+        private async Task<HttpResponseMessage> Download_URL(string url)
+        {
+            HttpResponseMessage responseMsg_m3u8;
+            using (var httpClient = new HttpClient())
+            {
+                using (var request = new HttpRequestMessage(new HttpMethod("GET"), url))
+                {
+                    foreach (var header in ctx.HeaderModel.Items)
+                    {
+                        request.Headers.TryAddWithoutValidation(header.Name, header.Value);
+                    }
+
+                    responseMsg_m3u8 = await httpClient.SendAsync(request);
+                }
+            }
+            return responseMsg_m3u8;
+        }
+
         private async void Download_Click(object sender, RoutedEventArgs e)
         {
             if (string.IsNullOrWhiteSpace(ctx.URL))
@@ -78,26 +98,15 @@ namespace m3u8_downloader_avalonia.Views
             ctx.DownloadButtonEnabled = false;
 
             HttpResponseMessage responseMsg_m3u8;
-            using (var httpClient = new HttpClient())
+            try
             {
-                using (var request = new HttpRequestMessage(new HttpMethod("GET"), ctx.URL))
-                {
-                    foreach (var header in ctx.HeaderModel.Items)
-                    {
-                        request.Headers.TryAddWithoutValidation(header.Name, header.Value);
-                    }
-
-                    try
-                    {
-                        responseMsg_m3u8 = await httpClient.SendAsync(request);
-                    }
-                    catch (Exception)
-                    {
-                        ShowNotification("URL unreachable.");
-                        ctx.DownloadButtonEnabled = true;
-                        return;
-                    }
-                }
+                responseMsg_m3u8 = await Download_URL(ctx.URL);
+            }
+            catch (Exception)
+            {
+                ShowNotification("URL unreachable.");
+                ctx.DownloadButtonEnabled = true;
+                return;
             }
 
             if (string.IsNullOrEmpty(ctx.FilePath))
@@ -105,19 +114,38 @@ namespace m3u8_downloader_avalonia.Views
                 SaveFileDialog saveFileDialog = new SaveFileDialog();
                 ctx.FilePath = await saveFileDialog.ShowAsync(this);
             }
-            FileStream fileStream = new FileStream(ctx.FilePath, FileMode.Create);
+            
+            if (await DownloadChunks(responseMsg_m3u8))
+            {
+                ShowNotification("Download done");
+                ctx.DownloadProgress = 0;
 
+                ctx.DownloadButtonEnabled = true;
+            }
+        }
+
+        private async Task<bool> DownloadChunks(HttpResponseMessage responseMsg_m3u8, bool showModalIfMediaMissing = true)
+        {
+            FileStream fileStream = new FileStream(ctx.FilePath, FileMode.Create);
             string response_m3u8 = await responseMsg_m3u8.Content.ReadAsStringAsync();
             var m3u8 = M3u8Parser.Parse(response_m3u8);
 
             if (m3u8.Medias.Count == 0)
             {
-                ShowNotification("URL does not contain any media.");
+                if (m3u8.Qualities.Count > 0)
+                {
+                    if (showModalIfMediaMissing)
+                    {
+                        ctx.QualityList = m3u8.Qualities;
+                        ctx.QualityModalOpened = true;
+                    }
+                    return false;
+                }
+                ShowNotification("URL does not contain any media."); // TODO: this method should not show any GUI
                 ctx.DownloadButtonEnabled = true;
-                return;
+                return false;
             }
-
-            var urlReplaced = ctx.URL.Substring(0, ctx.URL.LastIndexOf('/'));
+            string urlReplaced = GetBaseURL(ctx.URL);
 
             var progressChunk = 100.0 / m3u8.Medias.Count;
             foreach (var media in m3u8.Medias)
@@ -125,7 +153,17 @@ namespace m3u8_downloader_avalonia.Views
                 // download individual video chunks
                 using (var httpClient = new HttpClient())
                 {
-                    var chunkUrl = urlReplaced + "/" + media.Path;
+                    var chunkUrl = string.Empty;
+
+                    if (Uri.IsWellFormedUriString(media.Path, UriKind.Absolute))
+                    {
+                        chunkUrl = media.Path;
+                    }
+                    else
+                    {
+                        chunkUrl = urlReplaced + "/" + media.Path;
+                    }
+
                     using (var request = new HttpRequestMessage(new HttpMethod("GET"), chunkUrl))
                     {
                         foreach (var header in ctx.HeaderModel.Items)
@@ -149,18 +187,19 @@ namespace m3u8_downloader_avalonia.Views
             }
 
             fileStream.Close();
-            ShowNotification("Download done");
+            return true;
+        }
 
-            ctx.DownloadProgress = 0;
-            
-            ctx.DownloadButtonEnabled = true;
-            
+        private string GetBaseURL(string url)
+        {
+            return ctx.URL.Substring(0, url.LastIndexOf('/'));
         }
 
         private void ShowNotification(string text)
         {
             var messageBoxStandardWindow = MessageBox.Avalonia.MessageBoxManager
-                .GetMessageBoxStandardWindow(new MessageBoxStandardParams {
+                .GetMessageBoxStandardWindow(new MessageBoxStandardParams
+                {
                     ContentTitle = "Notification",
                     ContentMessage = text,
                     ShowInCenter = true,
@@ -169,6 +208,22 @@ namespace m3u8_downloader_avalonia.Views
                     CanResize = false
                 });
             messageBoxStandardWindow.Show();
+        }
+
+        private async void QualitySelector_OnDialogClosing(object? sender, DialogClosingEventArgs e)
+        {
+            var quality = e.Parameter as M3u8Quality;
+            string urlReplaced = GetBaseURL(ctx.URL);
+#pragma warning disable CS8602 // Dereference of a possibly null reference.
+            var responseMsg_m3u8 = await Download_URL(urlReplaced + "/" + quality.Path);
+#pragma warning restore CS8602 // Dereference of a possibly null reference.
+
+            await DownloadChunks(responseMsg_m3u8);
+            ShowNotification("Download done");
+
+            ctx.DownloadProgress = 0;
+
+            ctx.DownloadButtonEnabled = true;
         }
 
         /*
