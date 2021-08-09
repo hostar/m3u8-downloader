@@ -12,7 +12,6 @@ using System;
 using System.ComponentModel;
 using System.IO;
 using System.Net.Http;
-using MessageBox.Avalonia.DTO;
 using System.Threading.Tasks;
 using DialogHost;
 
@@ -207,17 +206,8 @@ namespace m3u8_downloader_avalonia.Views
 
         private void ShowNotification(string text)
         {
-            var messageBoxStandardWindow = MessageBox.Avalonia.MessageBoxManager
-                .GetMessageBoxStandardWindow(new MessageBoxStandardParams
-                {
-                    ContentTitle = "Notification",
-                    ContentMessage = text,
-                    ShowInCenter = true,
-                    MinWidth = 500,
-                    SizeToContent = SizeToContent.WidthAndHeight,
-                    CanResize = false
-                });
-            messageBoxStandardWindow.Show();
+            ctx.MsgBoxModalText = text;
+            ctx.MsgBoxModalOpened = true;
         }
 
         private async void QualitySelector_OnDialogClosing(object? sender, DialogClosingEventArgs e)

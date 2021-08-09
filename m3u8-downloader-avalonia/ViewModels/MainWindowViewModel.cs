@@ -39,6 +39,20 @@ namespace m3u8_downloader_avalonia.ViewModels
             set => this.RaiseAndSetIfChanged(ref qualityModalOpened, value);
         }
 
+        private bool msgBoxModalOpened = false;
+        public bool MsgBoxModalOpened
+        {
+            get => msgBoxModalOpened;
+            set => this.RaiseAndSetIfChanged(ref msgBoxModalOpened, value);
+        }
+
+        private string msgBoxModalText = string.Empty;
+        public string MsgBoxModalText
+        {
+            get => msgBoxModalText;
+            set => this.RaiseAndSetIfChanged(ref msgBoxModalText, value);
+        }
+
         private int downloadProgress = 0;
 
         public int DownloadProgress
