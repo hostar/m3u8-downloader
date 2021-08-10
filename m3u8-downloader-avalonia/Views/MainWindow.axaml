@@ -7,8 +7,8 @@
         xmlns:dialogHost="clr-namespace:DialogHost;assembly=DialogHost.Avalonia"
         mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
         x:Class="m3u8_downloader_avalonia.Views.MainWindow"
-        Icon="/Assets/avalonia-logo.ico"
-        Title="m3u8_downloader_avalonia">
+        Icon="/Assets/output.ico"
+        Title="M3U8 downloader">
 
   <Design.DataContext>
     <vm:MainWindowViewModel/>
