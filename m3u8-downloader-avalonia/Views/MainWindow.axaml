@@ -5,7 +5,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:dialogHost="clr-namespace:DialogHost;assembly=DialogHost.Avalonia"
-        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450" MinWidth="700"
         x:Class="m3u8_downloader_avalonia.Views.MainWindow"
         Icon="/Assets/output.ico"
         Title="M3U8 downloader">
@@ -84,9 +84,9 @@
             </Expander.Content>
           </Expander>
           <TextBlock Margin="5">Download file path:</TextBlock>
-          <Grid ColumnDefinitions="10*,0.5*">
+          <Grid ColumnDefinitions="10*,1*">
             <TextBox IsEnabled="{Binding DownloadButtonEnabled, Mode=TwoWay}" Text="{Binding FilePath, Mode=TwoWay}" Grid.Column="0" />
-            <Button Click="OpenSaveDialog_Click" IsEnabled="{Binding DownloadButtonEnabled, Mode=TwoWay}" Tag="{Binding}" Grid.Column="1">Browse</Button>
+            <Button Click="OpenSaveDialog_Click" IsEnabled="{Binding DownloadButtonEnabled, Mode=TwoWay}" Tag="{Binding}" MinWidth="70" HorizontalAlignment="Right" Grid.Column="1">Browse</Button>
           </Grid>
           <TextBlock Margin="5">URL:</TextBlock>
           <TextBox IsEnabled="{Binding DownloadButtonEnabled, Mode=TwoWay}" Text="{Binding URL, Mode=TwoWay}" />
