@@ -72,8 +72,15 @@ jobs:
     - name: Build
       run: dotnet build --no-restore -c Release
 
-    - name: Upload build artifacts
+    - name: Archive Release
+      uses: thedoctor0/zip-release@master
+      with:
+        type: 'zip'
+        filename: 'M3U8.zip'
+        directory: .
+        path: .
+    - name: Upload a Build Artifact
       uses: actions/upload-artifact@v3
       with:
-        name: EXE
-        path: m3u8-downloader/m3u8-downloader/m3u8-downloader-avalonia/bin/Release/net6.0/.*
+        name: M3U8
+        path: ./*.zip
