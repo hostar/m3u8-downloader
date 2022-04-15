@@ -14,6 +14,7 @@ using System.IO;
 using System.Net.Http;
 using System.Threading.Tasks;
 using DialogHost;
+using System.Net;
 
 namespace m3u8_downloader_avalonia.Views
 {
@@ -71,8 +72,11 @@ namespace m3u8_downloader_avalonia.Views
 
         private async Task<HttpResponseMessage> Download_URL(string url)
         {
-            HttpResponseMessage responseMsg_m3u8;
-            using (var httpClient = new HttpClient())
+            using (var httpClient = new HttpClient(new HttpClientHandler
+                        {
+                            AutomaticDecompression = DecompressionMethods.GZip
+                                                 | DecompressionMethods.Deflate
+                        }))
             {
                 using (var request = new HttpRequestMessage(new HttpMethod("GET"), url))
                 {
@@ -81,10 +85,17 @@ namespace m3u8_downloader_avalonia.Views
                         request.Headers.TryAddWithoutValidation(header.Name, header.Value);
                     }
 
-                    responseMsg_m3u8 = await httpClient.SendAsync(request);
+                    try
+                    {
+                        return await httpClient.SendAsync(request);
+                    }
+                    catch (Exception ex)
+                    {
+                        ShowNotification($"{ex.Message}");
+                    }
                 }
             }
-            return responseMsg_m3u8;
+            throw new ArgumentException(nameof(Download_URL));
         }
 
         private async void Download_Click(object sender, RoutedEventArgs e)
@@ -113,13 +124,33 @@ namespace m3u8_downloader_avalonia.Views
                 await OpenSaveDialog();
             }
 
-            if (await DownloadChunks(responseMsg_m3u8))
+            string response_m3u8Str = await responseMsg_m3u8.Content.ReadAsStringAsync();
+
+            if (await DownloadChunks(response_m3u8Str))
             {
                 ShowNotification("Download done");
                 ctx.DownloadProgress = 0;
 
                 ctx.DownloadButtonEnabled = true;
             }
+        }
+
+        private async void QualitySelector_OnDialogClosing(object? sender, DialogClosingEventArgs e)
+        {
+            var quality = e.Parameter as M3u8Quality;
+            string urlReplaced = GetBaseURL(ctx.URL);
+#pragma warning disable CS8602 // Dereference of a possibly null reference.
+            var responseMsg_m3u8 = await Download_URL(urlReplaced + "/" + quality.Path);
+#pragma warning restore CS8602 // Dereference of a possibly null reference.
+
+            string response_m3u8Str = await responseMsg_m3u8.Content.ReadAsStringAsync();
+
+            await DownloadChunks(response_m3u8Str);
+            ShowNotification("Download done");
+
+            ctx.DownloadProgress = 0;
+
+            ctx.DownloadButtonEnabled = true;
         }
 
         private async Task OpenSaveDialog()
@@ -133,11 +164,10 @@ namespace m3u8_downloader_avalonia.Views
             await OpenSaveDialog();
         }
 
-        private async Task<bool> DownloadChunks(HttpResponseMessage responseMsg_m3u8, bool showModalIfMediaMissing = true)
+        private async Task<bool> DownloadChunks(string responseMsg_m3u8, bool showModalIfMediaMissing = true)
         {
-            FileStream fileStream = new FileStream(ctx.FilePath, FileMode.Create);
-            string response_m3u8 = await responseMsg_m3u8.Content.ReadAsStringAsync();
-            var m3u8 = M3u8Parser.Parse(response_m3u8);
+            FileStream fileStream = new(ctx.FilePath, FileMode.Create);
+            M3u8MediaContainer? m3u8 = M3u8Parser.Parse(responseMsg_m3u8);
 
             if (m3u8.Medias.Count == 0)
             {
@@ -160,7 +190,11 @@ namespace m3u8_downloader_avalonia.Views
             foreach (var media in m3u8.Medias)
             {
                 // download individual video chunks
-                using (var httpClient = new HttpClient())
+                using (var httpClient = new HttpClient(new HttpClientHandler
+                        {
+                            AutomaticDecompression = DecompressionMethods.GZip
+                                                         | DecompressionMethods.Deflate
+                        }))
                 {
                     var chunkUrl = string.Empty;
 
@@ -173,24 +207,32 @@ namespace m3u8_downloader_avalonia.Views
                         chunkUrl = urlReplaced + "/" + media.Path;
                     }
 
-                    using (var request = new HttpRequestMessage(new HttpMethod("GET"), chunkUrl))
+                    try
                     {
-                        foreach (var header in ctx.HeaderModel.Items)
+                        ctx.downloadProgressDouble = 0;
+                        using (var request = new HttpRequestMessage(new HttpMethod("GET"), chunkUrl))
                         {
-                            request.Headers.TryAddWithoutValidation(header.Name, header.Value);
-                        }
+                            foreach (var header in ctx.HeaderModel.Items)
+                            {
+                                request.Headers.TryAddWithoutValidation(header.Name, header.Value);
+                            }
 
-                        var responseMsgVideoChunk = await httpClient.SendAsync(request);
-                        ctx.downloadProgressDouble += progressChunk;
-                        ctx.DownloadProgress = (int)ctx.downloadProgressDouble;
+                            var responseMsgVideoChunk = await httpClient.SendAsync(request);
+                            ctx.downloadProgressDouble += progressChunk;
+                            ctx.DownloadProgress = (int)ctx.downloadProgressDouble;
 
-                        using (var memstream = new MemoryStream())
-                        {
-                            await responseMsgVideoChunk.Content.CopyToAsync(memstream);
-                            var bytes = default(byte[]);
-                            bytes = memstream.ToArray();
-                            fileStream.Write(bytes);
+                            using (var memstream = new MemoryStream())
+                            {
+                                await responseMsgVideoChunk.Content.CopyToAsync(memstream);
+                                var bytes = default(byte[]);
+                                bytes = memstream.ToArray();
+                                fileStream.Write(bytes);
+                            }
                         }
+                    }
+                    catch (Exception ex)
+                    {
+                        ShowNotification($"{ex.Message}");
                     }
                 }
             }
@@ -208,22 +250,6 @@ namespace m3u8_downloader_avalonia.Views
         {
             ctx.MsgBoxModalText = text;
             ctx.MsgBoxModalOpened = true;
-        }
-
-        private async void QualitySelector_OnDialogClosing(object? sender, DialogClosingEventArgs e)
-        {
-            var quality = e.Parameter as M3u8Quality;
-            string urlReplaced = GetBaseURL(ctx.URL);
-#pragma warning disable CS8602 // Dereference of a possibly null reference.
-            var responseMsg_m3u8 = await Download_URL(urlReplaced + "/" + quality.Path);
-#pragma warning restore CS8602 // Dereference of a possibly null reference.
-
-            await DownloadChunks(responseMsg_m3u8);
-            ShowNotification("Download done");
-
-            ctx.DownloadProgress = 0;
-
-            ctx.DownloadButtonEnabled = true;
         }
 
         /*
