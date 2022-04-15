@@ -76,4 +76,4 @@ jobs:
       uses: actions/upload-artifact@v3
       with:
         name: EXE
-        path: m3u8-downloader/m3u8-downloader-avalonia/bin/Release/net6.0/.*
+        path: m3u8-downloader/m3u8-downloader/m3u8-downloader-avalonia/bin/Release/net6.0/.*
