@@ -1,15 +1,12 @@
-using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
-using Avalonia.Dialogs;
 using CurlToCSharp.Models.Parsing;
 using CurlToCSharp.Services;
 using m3u8_downloader_avalonia.Models;
 using m3u8_downloader_avalonia.ViewModels;
 using m3u8_downloader_avalonia.deps.M3U8parser;
 using System;
-using System.ComponentModel;
 using System.IO;
 using System.Net.Http;
 using System.Threading.Tasks;
@@ -186,6 +183,8 @@ namespace m3u8_downloader_avalonia.Views
             }
             string urlReplaced = GetBaseURL(ctx.URL);
 
+            ctx.downloadProgressDouble = 0;
+
             var progressChunk = 100.0 / m3u8.Medias.Count;
             foreach (var media in m3u8.Medias)
             {
@@ -193,8 +192,9 @@ namespace m3u8_downloader_avalonia.Views
                 using (var httpClient = new HttpClient(new HttpClientHandler
                         {
                             AutomaticDecompression = DecompressionMethods.GZip
-                                                         | DecompressionMethods.Deflate
-                        }))
+                                                   | DecompressionMethods.Deflate
+                                                   | DecompressionMethods.Brotli
+                }))
                 {
                     var chunkUrl = string.Empty;
 
@@ -209,7 +209,6 @@ namespace m3u8_downloader_avalonia.Views
 
                     try
                     {
-                        ctx.downloadProgressDouble = 0;
                         using (var request = new HttpRequestMessage(new HttpMethod("GET"), chunkUrl))
                         {
                             foreach (var header in ctx.HeaderModel.Items)
