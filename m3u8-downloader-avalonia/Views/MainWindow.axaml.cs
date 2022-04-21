@@ -12,6 +12,7 @@ using System.Net.Http;
 using System.Threading.Tasks;
 using DialogHost;
 using System.Net;
+using Avalonia;
 
 namespace m3u8_downloader_avalonia.Views
 {
