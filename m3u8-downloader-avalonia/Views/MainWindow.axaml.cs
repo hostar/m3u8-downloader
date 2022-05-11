@@ -51,6 +51,8 @@ namespace m3u8_downloader_avalonia.Views
                 return;
             }
             ctx.URL = parserResult.Data.Url.ToString();
+
+            ctx.HeaderModel.Items.Clear();
             foreach (var header in parserResult.Data.Headers)
             {
                 ctx.HeaderModel.Items.Add(new HeaderView() { Name = header.Key, Value = header.Value });
