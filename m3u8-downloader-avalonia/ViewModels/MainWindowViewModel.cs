@@ -1,4 +1,5 @@
 ﻿using Avalonia.Interactivity;
+using CurlToCSharp.Models;
 using m3u8_downloader_avalonia.deps.M3U8parser;
 using ReactiveUI;
 using System;
@@ -68,5 +69,13 @@ namespace m3u8_downloader_avalonia.ViewModels
             get => qualityList;
             set => this.RaiseAndSetIfChanged(ref qualityList, value);
         }
+
+        private bool isPostRequest = false;
+        public bool IsPostRequest
+        {
+            get => isPostRequest;
+            set => this.RaiseAndSetIfChanged(ref isPostRequest, value);
+        }
+        public ICollection<UploadData> UploadData { get; internal set; }
     }
 }

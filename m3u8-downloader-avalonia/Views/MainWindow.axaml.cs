@@ -13,6 +13,11 @@ using System.Threading.Tasks;
 using DialogHost;
 using System.Net;
 using Avalonia;
+using System.Runtime.Intrinsics.Arm;
+using System.Text.Json;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
 
 namespace m3u8_downloader_avalonia.Views
 {
@@ -51,6 +56,7 @@ namespace m3u8_downloader_avalonia.Views
                 return;
             }
             ctx.URL = parserResult.Data.Url.ToString();
+            ctx.UploadData = parserResult.Data.UploadData;
 
             ctx.HeaderModel.Items.Clear();
             foreach (var header in parserResult.Data.Headers)
@@ -78,11 +84,23 @@ namespace m3u8_downloader_avalonia.Views
                                                  | DecompressionMethods.Deflate
                         }))
             {
-                using (var request = new HttpRequestMessage(new HttpMethod("GET"), url))
+                using (var request = new HttpRequestMessage(new HttpMethod(ctx.IsPostRequest ? "POST" : "GET"), url))
                 {
                     foreach (var header in ctx.HeaderModel.Items)
                     {
                         request.Headers.TryAddWithoutValidation(header.Name, header.Value);
+                    }
+
+                    if (ctx.IsPostRequest)
+                    {
+                        //var dict = ctx.UploadData.ToDictionary((u) => u.Content, (e) => e.Content);
+                        //request.Content = new FormUrlEncodedContent(dict);
+                        
+                        foreach (CurlToCSharp.Models.UploadData uploadData in ctx.UploadData)
+                        {
+                            request.Content = new StringContent(uploadData.Content.Substring(1), Encoding.UTF8, "application/x-www-form-urlencoded");
+                        }
+                        
                     }
 
                     try
@@ -126,6 +144,12 @@ namespace m3u8_downloader_avalonia.Views
 
             string response_m3u8Str = await responseMsg_m3u8.Content.ReadAsStringAsync();
 
+            if (response_m3u8Str[0] == '<')
+            {
+                ShowNotification("URL does not return JSON");
+                return;
+            }
+
             if (await DownloadChunks(response_m3u8Str))
             {
                 ShowNotification("Download done");
@@ -138,14 +162,22 @@ namespace m3u8_downloader_avalonia.Views
         private async void QualitySelector_OnDialogClosing(object? sender, DialogClosingEventArgs e)
         {
             var quality = e.Parameter as M3u8Quality;
-            string urlReplaced = GetBaseURL(ctx.URL);
-#pragma warning disable CS8602 // Dereference of a possibly null reference.
-            var responseMsg_m3u8 = await Download_URL(urlReplaced + "/" + quality.Path);
-#pragma warning restore CS8602 // Dereference of a possibly null reference.
+            string urlBase = GetBaseURL(quality.Path);
 
+            var qualityUrl = new Uri(quality.Path);
+            if (!qualityUrl.IsAbsoluteUri)
+            {
+                urlBase += "/" + quality.Path;
+            }
+            else
+            {
+                urlBase = quality.Path;
+            }
+
+            var responseMsg_m3u8 = await Download_URL(urlBase);
             string response_m3u8Str = await responseMsg_m3u8.Content.ReadAsStringAsync();
 
-            await DownloadChunks(response_m3u8Str);
+            await DownloadChunks(response_m3u8Str, qualityUrl: qualityUrl.ToString());
             ShowNotification("Download done");
 
             ctx.DownloadProgress = 0;
@@ -164,11 +196,42 @@ namespace m3u8_downloader_avalonia.Views
             await OpenSaveDialog();
         }
 
-        private async Task<bool> DownloadChunks(string responseMsg_m3u8, bool showModalIfMediaMissing = true)
+        private async Task<bool> DownloadChunks(string responseMsg_m3u8, bool showModalIfMediaMissing = true, string qualityUrl = "")
         {
             FileStream fileStream = new(ctx.FilePath, FileMode.Create);
-            M3u8MediaContainer? m3u8 = M3u8Parser.Parse(responseMsg_m3u8);
+            StreamWriter streamWriter = new StreamWriter(fileStream);
 
+            //System.Text.Json.JsonSerializer.Deserialize<string>(responseMsg_m3u8);
+            System.Text.Json.JsonDocument jsonDocument = System.Text.Json.JsonDocument.Parse(responseMsg_m3u8);
+
+            string? domainrd = "";
+            if (jsonDocument.RootElement.TryGetProperty("domainrd", out JsonElement domainrdElem))
+            {
+                domainrd = domainrdElem.GetString();
+            }
+
+            List<string> chunks = new List<string>();
+
+            if (jsonDocument.RootElement.TryGetProperty("data", out JsonElement jsonElement))
+            {
+                foreach (JsonElement arrElem in jsonElement[1].EnumerateArray())
+                {
+                    var arr = arrElem.GetString()?.Split("|");
+                    if (arr != null)
+                    {
+                        if (arr[0][0] == '2')
+                        {
+                            chunks.Add(arr[1]);
+                        }
+                        if (arr[0][0] == '1')
+                        {
+                            chunks.Add(domainrd + "/rdv1/" + arr[1]);
+                        }
+                    }
+                }
+            }
+
+            /*
             if (m3u8.Medias.Count == 0)
             {
                 if (m3u8.Qualities.Count > 0)
@@ -184,19 +247,64 @@ namespace m3u8_downloader_avalonia.Views
                 ctx.DownloadButtonEnabled = true;
                 return false;
             }
-            string urlReplaced = GetBaseURL(ctx.URL);
+            */
 
+            string urlReplaced;
+            if (qualityUrl != string.Empty)
+            {
+                urlReplaced = GetBaseURL(qualityUrl);
+            }
+            else
+            {
+                urlReplaced = GetBaseURL(ctx.URL);
+            }
+
+            var progressChunk = 100.0 / chunks.Count;
             ctx.downloadProgressDouble = 0;
 
+            foreach (string chunkUrl in chunks)
+            {
+                using (var httpClient = new HttpClient(new HttpClientHandler
+                {
+                    AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate | DecompressionMethods.Brotli
+                }))
+                {
+                    using (var request = new HttpRequestMessage(new HttpMethod("GET"), chunkUrl))
+                    {
+                        foreach (var header in ctx.HeaderModel.Items)
+                        {
+                            if ((header.Name != "Content-Length") || (header.Name != "Content-Type"))
+                            {
+                                request.Headers.TryAddWithoutValidation(header.Name, header.Value);
+                            }                            
+                        }
+                        HttpResponseMessage? responseMsgVideoChunk = await httpClient.SendAsync(request);
+
+                        if (responseMsgVideoChunk.StatusCode == HttpStatusCode.OK)
+                        {
+                            var str = await responseMsgVideoChunk.Content.ReadAsStringAsync();
+                            var index = str.IndexOf("G@");
+                            str = str.Substring(index, str.Length - index);
+
+                            streamWriter.Write(str);
+
+                            ctx.downloadProgressDouble += progressChunk;
+                            ctx.DownloadProgress = (int)ctx.downloadProgressDouble;
+                        }
+                    }
+                }
+            }
+
+            /*
             var progressChunk = 100.0 / m3u8.Medias.Count;
             foreach (var media in m3u8.Medias)
             {
                 // download individual video chunks
                 using (var httpClient = new HttpClient(new HttpClientHandler
-                        {
-                            AutomaticDecompression = DecompressionMethods.GZip
-                                                   | DecompressionMethods.Deflate
-                                                   | DecompressionMethods.Brotli
+                {
+                    AutomaticDecompression = DecompressionMethods.GZip
+                                            | DecompressionMethods.Deflate
+                                            | DecompressionMethods.Brotli
                 }))
                 {
                     var chunkUrl = string.Empty;
@@ -212,23 +320,18 @@ namespace m3u8_downloader_avalonia.Views
 
                     try
                     {
-                        using (var request = new HttpRequestMessage(new HttpMethod("GET"), chunkUrl))
+                        int retry = 0;
+                        while (retry <= 3)
                         {
-                            foreach (var header in ctx.HeaderModel.Items)
+                            try
                             {
-                                request.Headers.TryAddWithoutValidation(header.Name, header.Value);
+                                await SendChunkRequest(fileStream, progressChunk, httpClient, chunkUrl);
+                                break;
                             }
-
-                            var responseMsgVideoChunk = await httpClient.SendAsync(request);
-                            ctx.downloadProgressDouble += progressChunk;
-                            ctx.DownloadProgress = (int)ctx.downloadProgressDouble;
-
-                            using (var memstream = new MemoryStream())
+                            catch (Exception ex)
                             {
-                                await responseMsgVideoChunk.Content.CopyToAsync(memstream);
-                                var bytes = default(byte[]);
-                                bytes = memstream.ToArray();
-                                fileStream.Write(bytes);
+                                break;
+                                retry++;
                             }
                         }
                     }
@@ -238,14 +341,54 @@ namespace m3u8_downloader_avalonia.Views
                     }
                 }
             }
+            */
 
-            fileStream.Close();
+            streamWriter.Close();
             return true;
+        }
+
+        private async Task SendChunkRequest(FileStream fileStream, double progressChunk, HttpClient httpClient, string chunkUrl)
+        {
+            using (var request = new HttpRequestMessage(new HttpMethod("GET"), chunkUrl))
+            {
+                foreach (var header in ctx.HeaderModel.Items)
+                {
+                    request.Headers.TryAddWithoutValidation(header.Name, header.Value);
+                }
+
+                HttpResponseMessage? responseMsgVideoChunk = await httpClient.SendAsync(request);
+
+                if (responseMsgVideoChunk != null)
+                {
+                    if (responseMsgVideoChunk.StatusCode != HttpStatusCode.OK)
+                    {
+
+                    }
+
+                    try
+                    {
+                        using (var memstream = new MemoryStream())
+                        {
+                            await responseMsgVideoChunk.Content.CopyToAsync(memstream);
+                            var bytes = default(byte[]);
+                            bytes = memstream.ToArray();
+                            fileStream.Write(bytes);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+
+                    }
+
+                    ctx.downloadProgressDouble += progressChunk;
+                    ctx.DownloadProgress = (int)ctx.downloadProgressDouble;
+                }
+            }
         }
 
         private string GetBaseURL(string url)
         {
-            return ctx.URL.Substring(0, url.LastIndexOf('/'));
+            return url.Substring(0, url.LastIndexOf('/'));
         }
 
         private void ShowNotification(string text)
