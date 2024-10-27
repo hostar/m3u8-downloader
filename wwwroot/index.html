@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <base href="/" />
+    <link href="css/bootstrap/bootstrap.min.css" rel="stylesheet" />
+    <link href="css/app.css" rel="stylesheet" />
+    <link href="Photino.Blazor.Sample.styles.css" rel="stylesheet" />
+
+    <link href="_content/Radzen.Blazor/css/material-base.css" rel="stylesheet">
+</head>
+<body>
+    <!-- <video id="video" controls></video> -->
+    <app>Loading...</app>
+
+    <div id="blazor-error-ui">
+        An unhandled error has occurred.
+        <a href="" class="reload">Reload</a>
+        <a class="dismiss">🗙</a>
+    </div>
+
+    <script src="_framework/blazor.webview.js"></script>
+    <script src="_content/Radzen.Blazor/Radzen.Blazor.js"></script>
+    <script src="hls.js"></script>
+    <script>
+        // Create an Hls.js instance
+        window.hls = new Hls();
+
+        //var video = document.getElementById('video');
+
+        // Attach an event listener to the MANIFEST_PARSED event
+        hls.on(Hls.Events.MANIFEST_PARSED, function (event, data) {
+            console.log('Manifest loaded, available quality levels:', data.levels);
+
+            data.levels.forEach(level => {
+                console.log('Video URL:', level.url);
+                console.log('Resolution:', level.width + 'x' + level.height);
+                console.log('Bitrate:', level.bitrate);
+            });
+
+            const audioTracks = hls.audioTracks;
+            audioTracks.forEach(track => {
+                console.log('Audio URL:', track.url);
+                console.log('Language:', track.lang);
+                console.log('Bitrate:', track.bitrate);
+            });
+        });
+
+        hls.on(Hls.Events.FRAG_LOADED, function (event, data) {
+            // Access the fragment (segment) URL
+            var segmentUrl = data.frag.url;
+            console.log('Segment URL:', segmentUrl);
+        });
+
+        // Load the HLS manifest
+        //hls.loadSource('https://path.to/your/hls/stream.m3u8');
+        //hls.attachMedia(video)
+    </script>
+</body>
+</html>
