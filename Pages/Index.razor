@@ -1,0 +1,146 @@
+﻿@page "/"
+
+@inject ThemeService themeService
+@inject NotificationService notificationService
+@inject DialogService dialogService
+@inject PhotinoWebViewManager photinoWebViewManager
+@inject IJSRuntime jsRuntime
+
+<div style="z-index: 1000; background-color: rgba(0,0,0,0.2); position: absolute; width: 100%; height: @overlayHeight; display: @overlayDisplay">
+</div>
+
+<RadzenStack Orientation="Orientation.Vertical" class="px-4">
+    <div id="headerDiv">
+        <RadzenPanel AllowCollapse="true" class="rz-my-10 rz-mx-auto" Style="width: 90%;" Collapsed="true">
+            <HeaderTemplate>
+                <RadzenText TextStyle="TextStyle.H6" class="rz-display-flex rz-align-items-center rz-m-0">
+                    <b>Import CURL</b>
+                </RadzenText>
+            </HeaderTemplate>
+            <ChildContent>
+                <RadzenStack Orientation="Orientation.Vertical">
+                    <RadzenTextArea @bind-Value="importCurlTextArea" />
+                    <RadzenButton Text="Import" Click="ImportCurl" />
+                </RadzenStack>
+            </ChildContent>
+        </RadzenPanel>
+
+        <RadzenStack Orientation="Orientation.Horizontal">
+            <RadzenFormField Text="Download file path" Style="width: 75%;">
+                <RadzenTextBox @bind-Value="@downloadPath" />
+            </RadzenFormField>
+            <RadzenFormField Style="width: 25%;">
+                <RadzenButton Text="Browse" Style="height: 95%" Click="@Browse_SelectDestication" />
+            </RadzenFormField>
+        </RadzenStack>
+
+        <RadzenFormField Text="URL" Style="width: 100%;">
+            <RadzenTextBox @bind-Value="@url" />
+        </RadzenFormField>
+
+
+        <RadzenDataGrid @ref="headersGrid" AllowAlternatingRows="false" AllowFiltering="false" AllowPaging="true" PageSize="5" AllowSorting="true"
+                        Data="@headers" TItem="HttpHeaderView" EditMode="DataGridEditMode.Single" ColumnWidth="200px" RowUpdate="OnUpdateRow">
+            <HeaderTemplate>
+                <RadzenButton ButtonStyle="ButtonStyle.Success" Icon="add_circle" Text="Add HTTP header" Click="@InsertHeaderRow" Disabled="@(false)" />
+            </HeaderTemplate>
+            <EmptyTemplate></EmptyTemplate>
+            <Columns>
+                <RadzenDataGridColumn Property="Name" Title="Name" Width="150px">
+                    <EditTemplate Context="header">
+                        <RadzenTextBox @bind-Value="header.Name" />
+                    </EditTemplate>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn Property="Value" Title="Value" Width="150px">
+                    <EditTemplate Context="header">
+                        <RadzenTextBox @bind-Value="header.Value" />
+                    </EditTemplate>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn Context="header" Width="100px" Filterable="false" Sortable="false" TextAlign="TextAlign.Right" Frozen="true" FrozenPosition="FrozenColumnPosition.Right">
+                    <Template Context="header">
+                        <RadzenButton Icon="edit" ButtonStyle="ButtonStyle.Light" Variant="Variant.Flat" Size="ButtonSize.Medium" Click="@(args => EditRow(header))" @onclick:stopPropagation="true" />
+                        <RadzenButton ButtonStyle="ButtonStyle.Danger" Icon="delete" Variant="Variant.Flat" Shade="Shade.Lighter" Size="ButtonSize.Medium"
+                                      class="rz-my-1 rz-ms-1" Click="@(args => DeleteRow(header))" @onclick:stopPropagation="true" />
+                    </Template>
+                    <EditTemplate Context="header">
+                        <RadzenButton Icon="check" ButtonStyle="ButtonStyle.Success" Variant="Variant.Flat" Size="ButtonSize.Medium" Click="@((args) => SaveRow(header))" aria-label="Save" />
+                        <RadzenButton Icon="close" ButtonStyle="ButtonStyle.Light" Variant="Variant.Flat" Size="ButtonSize.Medium"
+                                      class="rz-my-1 rz-ms-1" Click="@((args) => CancelEdit(header))" aria-label="Cancel" />
+                    </EditTemplate>
+                </RadzenDataGridColumn>
+            </Columns>
+        </RadzenDataGrid>
+    </div>
+    <RadzenButton Text="Download" ButtonStyle="ButtonStyle.Primary" Click="StartDownload" />
+
+    <RadzenText>Download progress:</RadzenText>
+    <RadzenProgressBar Value="DownloadProgressBarValue" />
+
+    <RadzenStack Style="max-height: 700px; overflow-y: scroll; max-width: 100%">
+        @foreach (var line in progressLog)
+        {
+            <RadzenRow>
+                <RadzenText>@line</RadzenText>
+            </RadzenRow>
+        }
+    </RadzenStack>
+
+    <RadzenPanel AllowCollapse="true" class="rz-my-10 rz-mx-auto" Style="width: 90%;" Collapsed="true">
+        <HeaderTemplate>
+            <RadzenText TextStyle="TextStyle.H6" class="rz-display-flex rz-align-items-center rz-m-0">
+                <b>Settings</b>
+            </RadzenText>
+        </HeaderTemplate>
+        <ChildContent>
+            <RadzenStack Orientation="Orientation.Horizontal">
+                <RadzenCheckBox @bind-Value=@Settings.ParallelDownload Name="CheckBoxParallelDownload" />
+                <RadzenLabel Text="Download in parallel, " Component="CheckBoxParallelDownload" />
+                <RadzenText Text="use" />
+                <RadzenNumeric @bind-Value=@Settings.ParallelDownloadThreadsCount Style="width: 100px;" />
+                <RadzenText Text="threads" />
+            </RadzenStack>
+            <br />
+            <RadzenCheckBox @bind-Value=@Settings.SelectFirstQuality Name="CheckBoxSelectFirstQuality" />
+            <RadzenLabel Text="Automatically select first quality if source only contain one" Component="CheckBoxSelectFirstQuality" />
+            <br />
+            <RadzenCheckBox @bind-Value=@doNotConnectChunks Visible="false" Name="DoNotConnectChunks" />
+            <RadzenLabel Text="Do not connect chunks" Visible="false" Component="DoNotConnectChunks" />
+        </ChildContent>
+    </RadzenPanel>
+
+</RadzenStack>
+
+<div style="position: absolute; left: 20px; top: 20px; visibility: hidden;">
+    <RadzenAppearanceToggle />
+</div>
+
+<style>
+    .rz-panel-titlebar {
+        flex-direction: row-reverse;
+        justify-content: left;
+    }
+</style>
+
+<script>
+    function getHeadersHeight() {
+        return document.getElementById("headerDiv").getBoundingClientRect().height;
+    }
+</script>
+
+@code {
+    async Task ShowQualityDialog()
+    {
+        var result = await dialogService.OpenAsync("Select quality", ds =>
+    @<RadzenStack Gap="1.5rem">
+
+        <RadzenListBox @bind-Value=@selectedQuality Data=@qualities Style="width: 100%; max-width: 400px; height:200px" TextProperty="Quality"
+                       InputAttributes="@(new Dictionary<string,object>(){ { "aria-label", "select company" }})" />
+
+        <RadzenStack Orientation="Orientation.Horizontal" Gap="0.5rem" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween">
+            <RadzenStack Orientation="Orientation.Horizontal">
+                <RadzenButton Text="Confirm selection" Click="() => ds.Close(true)" />
+            </RadzenStack>
+        </RadzenStack>
+    </RadzenStack>);
+    }
+}
