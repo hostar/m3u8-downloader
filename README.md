@@ -2,7 +2,7 @@
 ![Screenshot](img/screen.png)
 
 ## Requirements
-.NET 6.0 runtime - download here: https://dotnet.microsoft.com/download/dotnet/6.0/runtime
+.NET 8.0 runtime - download here: https://dotnet.microsoft.com/download/dotnet/8.0/runtime
 
 ## General usage
 - set path where you want to download the file
@@ -14,5 +14,5 @@
 - expand "Import curl", paste CURL query to the text field, click "Import" button
 - URL and headers will be filled in based on your request
 
-Icon made with https://www.figma.com/
-
+## Download
+- download for all platform here: https://github.com/hostar/m3u8-downloader/releases/latest
