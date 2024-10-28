@@ -34,7 +34,7 @@ namespace m3u8_downloader_photino
                 //.SetResizable(false)
                 .SetFileSystemAccessEnabled(true)
                 .SetIconFile("favicon.ico")
-                .SetBrowserControlInitParameters("--unsafely-disable-devtools-self-xss-warnings")
+                //.SetBrowserControlInitParameters("--unsafely-disable-devtools-self-xss-warnings")
                 .SetTitle("M3U8 downloader");
 
             MainWindow = app.MainWindow;
